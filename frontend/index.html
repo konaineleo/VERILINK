@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<meta name="description" content="VERIKLIK checks links for phishing signals before you click.">
+<title>VERIKLIK — Check Before You Click</title>
+<style>
+:root{--bg:#FAFAF7;--card:#fff;--tx:#30343B;--mu:#737780;--ac:#873D46;--bd:#E5E5E2;--hi:#8B2A2A;--wa:#9A6B12;--lo:#3E6B48;--un:#737780}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:16px/1.6 Inter,system-ui,sans-serif}
+header,main,footer{max-width:760px;margin:0 auto;padding:0 20px}
+header{display:flex;align-items:center;justify-content:space-between;padding-top:20px;padding-bottom:20px;border-bottom:1px solid var(--bd);max-width:none}
+header div,header nav{max-width:760px}.brand{display:flex;gap:8px;align-items:center;font-weight:700;letter-spacing:.04em;color:var(--ac)}
+nav a{color:var(--mu);text-decoration:none;margin-left:16px;font-size:14px}nav a:hover{color:var(--tx)}
+h1{font-size:clamp(2rem,6vw,3rem);line-height:1.15;margin:56px 0 12px}h2{font-size:1.15rem;margin:40px 0 8px}
+p,li{color:var(--mu)}form{display:flex;gap:8px;margin:24px 0 8px;flex-wrap:wrap}
+input{flex:1;min-width:220px;padding:12px;border:1px solid var(--bd);border-radius:4px;font:inherit;background:var(--card);color:var(--tx)}
+button{padding:12px 20px;border:1px solid var(--ac);background:var(--ac);color:#fff;border-radius:4px;font:inherit;cursor:pointer}
+button.s{background:var(--card);color:var(--ac)}input:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:6px;padding:20px;margin-top:20px}
+.url{word-break:break-all;font-size:14px;color:var(--tx)}.badge{display:inline-block;padding:2px 10px;border:1px solid;border-radius:4px;font-weight:600}
+.bar{height:6px;background:var(--bd);border-radius:3px;margin:12px 0}.bar i{display:block;height:100%;border-radius:3px}
+.High{color:var(--hi)}.Suspicious{color:var(--wa)}.Low{color:var(--lo)}.Unknown{color:var(--un)}
+.row{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}[hidden]{display:none}footer{padding:40px 20px;color:var(--mu);font-size:14px;border-top:1px solid var(--bd);margin-top:48px}
+</style></head><body>
+<header><span class="brand"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/></svg>VERIKLIK</span>
+<nav><a href="#how">How it works</a><a href="#limits">Limitations</a><a href="#privacy">Privacy</a></nav></header>
+<main>
+<h1>Check Before You Click.</h1>
+<p>VERIKLIK looks for phishing and malicious-link warning signs in a web address without ever visiting it. Links clicked with the VERIKLIK extension arrive here and are checked automatically.</p>
+<form id="f"><input id="u" type="text" inputmode="url" aria-label="URL to analyze" placeholder="Or enter a URL manually" autocomplete="off"><button>Analyze URL</button></form>
+<div id="err" class="Unknown" role="alert" hidden></div>
+<section id="st" class="card" hidden aria-live="polite"><div class="url" id="su"></div><p id="ss" style="margin:8px 0 0"></p></section>
+<section id="res" class="card" hidden aria-live="polite">
+<span id="cat" class="badge"></span> <strong id="score"></strong>
+<div class="bar"><i id="fill"></i></div>
+<h2 style="margin-top:8px">Findings</h2><ul id="fnd"></ul>
+<h2>Checks</h2><ul id="chk"></ul>
+<h2>Recommendation</h2><p id="rec" style="color:var(--tx)"></p>
+<p style="font-size:13px">Analyzed: <span id="ts"></span></p>
+<div class="row"><button class="s" id="re">Rescan</button><button class="s" id="an">Analyze another URL</button></div></section>
+<section id="how"><h2>How it works</h2><p>The backend parses the URL text and scores independent signals: IP-address hosts, embedded user information, punycode, brand names in misleading subdomains, many subdomains, unusual ports, very long or double-encoded URLs, and plain HTTP. Points add up to a 0–100 score: 0–19 Low Risk, 20–49 Suspicious, 50–100 High Risk. No signal is proof on its own.</p></section>
+<section id="limits"><h2>Security limitations</h2><p>This is a heuristic baseline, not a machine-learning model. Threat-intelligence lookups are not configured, so known-malicious links are not detected. Page content and domain age are never checked. “Low Risk” means no warning signs in the address, not that the site is safe.</p></section>
+<section id="privacy"><h2>Privacy</h2><p>Only the URL text is sent to the VERIKLIK API. It is never opened or fetched. The extension passes the link in the address bar of this page, so it can appear in your browser history; the page removes it from the address bar after reading it. Choosing Direct sends nothing.</p></section>
+</main>
+<footer>VERIKLIK · student project prototype</footer>
+<script>
+const API = window.VERIKLIK_API || "http://localhost:8000";
+const $ = id => document.getElementById(id);
+let current = "", busy = false;
+const color = {"High Risk":"High","Suspicious":"Suspicious","Low Risk":"Low"};
+const fillc = {High:"var(--hi)",Suspicious:"var(--wa)",Low:"var(--lo)"};
+function li(ul, t){const e=document.createElement("li");e.textContent=t;ul.append(e)}
+async function scan(url){
+  if(busy) return; busy = true; current = url;
+  $("err").hidden = true; $("res").hidden = true; $("st").hidden = false;
+  $("su").textContent = url; $("ss").textContent = "Analyzing the address text. The site is not opened.";
+  try{
+    const r = await fetch(API+"/api/analyze",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({url})});
+    const d = await r.json();
+    if(!r.ok) throw new Error(typeof d.detail==="string"?d.detail:"The URL could not be validated.");
+    render(d);
+  }catch(e){
+    $("st").hidden = true; $("err").hidden = false;
+    $("err").textContent = e instanceof TypeError ? "Cannot reach the VERIKLIK API at "+API+". Start the backend and retry. No result is available." : e.message;
+  }finally{busy=false}
+}
+function render(d){
+  $("st").hidden = true; $("res").hidden = false;
+  const k = color[d.risk_category]||"Unknown";
+  $("cat").textContent = d.risk_category; $("cat").className = "badge "+k;
+  $("score").textContent = "Score "+d.risk_score+"/100";
+  $("fill").style.width = d.risk_score+"%"; $("fill").style.background = fillc[k];
+  ["fnd","chk"].forEach(i=>$(i).replaceChildren());
+  if(!d.findings.length) li($("fnd"),"No suspicious address features found.");
+  d.findings.forEach(f=>li($("fnd"),"Warning (+"+f.points+"): "+f.text));
+  d.checks_passed.forEach(t=>li($("chk"),"Passed: "+t));
+  d.checks_unavailable.forEach(t=>li($("chk"),"Unavailable: "+t));
+  $("rec").textContent = d.recommendation;
+  $("ts").textContent = new Date(d.analyzed_at).toLocaleString();
+}
+$("f").onsubmit = e => {e.preventDefault(); const v=$("u").value.trim(); if(v) scan(v)};
+$("re").onclick = () => scan(current);
+$("an").onclick = () => {$("res").hidden=true;$("u").value="";$("u").focus()};
+const q = new URLSearchParams(location.search).get("url");
+if(q){history.replaceState(null,"",location.pathname); $("u").value=q; scan(q)}
+</script></body></html>

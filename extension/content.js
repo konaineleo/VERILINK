@@ -1,7 +1,9 @@
 // VERIKLIK content script: asks Detect / Direct / Cancel on ordinary link clicks.
 (() => {
   const FRONTEND_ORIGIN = "http://localhost:5500"; // keep in sync with background.js
-  if (location.origin === FRONTEND_ORIGIN) return; // never intercept inside VERIKLIK
+  if ( location.origin === "https://veriklik.vercel.app" ||
+  location.origin === "http://localhost:5500" ||
+  location.origin === "http://127.0.0.1:5500") return; // never intercept inside VERIKLIK
   let open = false;
 
   document.addEventListener("click", (e) => {

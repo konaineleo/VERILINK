@@ -8,7 +8,7 @@ from analyzer import analyze_url
 
 app = FastAPI(title="VERIKLIK API")
 origins = [o.strip() for o in os.getenv(
-    "ALLOWED_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500").split(",") if o.strip()]
+    "ALLOWED_ORIGINS", "https://veriklik.vercel.app,http://localhost:5500,http://127.0.0.1:5500").split(",") if o.strip()]
 app.add_middleware(CORSMiddleware, allow_origins=origins, allow_methods=["POST", "GET"],
                    allow_headers=["Content-Type"])
 _hits = defaultdict(deque)  # prototype in-memory limiter: 30 requests/minute/IP
